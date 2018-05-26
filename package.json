@@ -1,6 +1,7 @@
 {
   "name": "europe-wide-dojo",
   "dependencies": {
+    "bs-fetch": "^0.3.0",
     "bs-platform": "^3.1.4",
     "react": "^16.4.0",
     "react-simple-maps": "^0.12.1",

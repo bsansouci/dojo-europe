@@ -169,12 +169,56 @@ let markers = [|
   ),
 |];
 
+[@bs.deriving abstract]
+type data = {
+  username: string,
+  location: array(float),
+};
+
+[@bs.val] [@bs.scope "JSON"]
+external parseIntoMyData : string => array(data) = "parse";
+
+let forsure = a =>
+  switch (a) {
+  | None => assert false
+  | Some(b) => b
+  };
+
 module Main = {
+  type action =
+    | SetState(array(Marker.markerT));
+  type state = {markers: array(Marker.markerT)};
   /* still in Greeting.re */
-  let component = ReasonReact.statelessComponent("Greeting");
+  let component = ReasonReact.reducerComponent("Greeting");
   let make = _children => {
     ...component, /* spread the template's other defaults into here  */
-    render: _self =>
+    initialState: () => {markers: [||]},
+    didMount: self =>
+      ignore @@
+      Js.Promise.(
+        Fetch.fetch("https://immense-river-25513.herokuapp.com/locations")
+        |> then_(Fetch.Response.text)
+        |> then_(text => {
+             let data = parseIntoMyData(text);
+             let data =
+               Array.map(
+                 (person) => {
+                   Marker.markerT(
+                     ~markerOffset=-25,
+                     ~name=person |. username,
+                     ~coordinates=person |. location,
+                   );
+                 },
+                 data,
+               );
+             self.send(SetState(data)) |> resolve;
+           })
+      ),
+    reducer: (action, _state) =>
+      switch (action) {
+      | SetState(markers) => ReasonReact.Update({markers: markers})
+      },
+    render: ({state}) =>
       <div
         style=(
           ReactDOMRe.Style.make(
@@ -277,7 +321,7 @@ module Main = {
                          />
                          <text
                            textAnchor="middle"
-                           y=string_of_int(Marker.markerOffset(marker))
+                           y=(string_of_int(Marker.markerOffset(marker)))
                            style=(
                              ReactDOMRe.Style.make(
                                ~fontFamily="Roboto, sans-serif",
@@ -288,7 +332,7 @@ module Main = {
                            (ReasonReact.string(Marker.name(marker)))
                          </text>
                        </Marker>,
-                     markers,
+                     state.markers,
                    )
                  )
             </Markers>
