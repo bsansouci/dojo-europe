@@ -1,0 +1,14 @@
+{
+  "name": "my-project-name",
+  "reason": {"react-jsx" : 2},
+  "sources": [
+    "src"
+  ],
+  // "package-specs": "es6",
+  // "suffix": ".bs.js",
+  "namespace": true,
+  "bs-dependencies": [
+    "reason-react"
+  ],
+  "refmt": 3
+}
