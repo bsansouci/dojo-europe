@@ -186,6 +186,20 @@ let forsure = a =>
   | Some(b) => b
   };
 
+[@bs.deriving abstract]
+type response = {responseText: string};
+
+[@bs.deriving abstract]
+type request = {
+  [@bs.as "method"]
+  method_: string,
+  body: string,
+};
+
+[@bs.val] external fetchGet : (string, response => unit) => unit = "fetch";
+
+[@bs.val] external fetchPost : (string, request) => unit = "fetch";
+
 module Main = {
   type action =
     | SetState(array(Marker.markerT));
@@ -196,49 +210,26 @@ module Main = {
     ...component, /* spread the template's other defaults into here  */
     initialState: () => {markers: [||]},
     didMount: self => {
-      open Js.Promise;
-      let payload = Js.Dict.empty();
-      Js.Dict.set(payload, "username", Js.Json.string("bsansouci"));
-      Js.Dict.set(
-        payload,
-        "location",
-        Js.Json.(array([|number(48.246557), number(48.246557)|])),
-      );
-      let body = Js.Json.stringify(Js.Json.object_(payload));
-      let requestInit =
-        Fetch.RequestInit.make(
-          ~method_=Fetch.Post,
-          ~body=Fetch.BodyInit.make(body),
-          ~headers=
-            Fetch.HeadersInit.make({"Content-Type": "application/json"}),
-          (),
-        );
-      ignore @@
-      Fetch.fetchWithInit(
+      fetchPost(
         "https://immense-river-25513.herokuapp.com/add-location",
-        requestInit,
+        request(~method_="POST", ~body="bsansouci"),
       );
-      ignore @@
-      (
-        Fetch.fetch("https://immense-river-25513.herokuapp.com/locations")
-        |> then_(Fetch.Response.text)
-        |> then_(text => {
-             let data = parseData(text);
-             let data =
-               Array.map(
-                 data,
-                 marker => {
-                   let (lat, long) = marker |. location;
-                   Marker.markerT(
-                     ~markerOffset=-25,
-                     ~name=marker |. username,
-                     ~coordinates=[|lat, long|],
-                   );
-                 },
-               );
-             self.send(SetState(data)) |> resolve;
-           })
-      );
+      fetchGet("https://immense-river-25513.herokuapp.com/locations", res => {
+        let data = parseData(res |. responseText);
+        let data =
+          Array.map(
+            data,
+            marker => {
+              let (lat, long) = marker |. location;
+              Marker.markerT(
+                ~markerOffset=-25,
+                ~name=marker |. username,
+                ~coordinates=[|lat, long|],
+              );
+            },
+          );
+        self.send(SetState(data));
+      });
     },
     reducer: (action, _state) =>
       switch (action) {
