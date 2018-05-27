@@ -171,47 +171,11 @@ let markers = [|
   ),
 |];
 
-[@bs.deriving abstract]
-type data = {
-  username: string,
-  location: (float, float),
-};
-
-/*[@bs.scope "JSON"] [@bs.val]
-  external parseData : string => array(data) = "parse";*/
-
 let forsure = a =>
   switch (a) {
   | None => assert(false)
   | Some(b) => b
   };
-
-module Fetch = {
-  type response1;
-  type promise('a);
-  [@bs.send] external json : response1 => 'a = "";
-
-  [@bs.deriving abstract]
-  type request = {
-    [@bs.as "method"]
-    method_: string,
-    body: string,
-  };
-
-  [@bs.val] external fetchGet : string => promise(response1) = "fetch";
-
-  [@bs.val] external fetchPost : (string, request) => unit = "fetch";
-  let fetchPost = (url, body) =>
-    fetchPost(url, request(~method_="POST", ~body));
-
-  [@bs.send]
-  external then1 : (promise(response1), response1 => 'a) => promise('a) =
-    "then";
-
-  [@bs.send] external then2 : (promise('a), 'a => unit) => unit = "then";
-
-  let fetchGet = (url, cb) => then2(then1(fetchGet(url), json), cb);
-};
 
 module Main = {
   type action =
@@ -224,20 +188,20 @@ module Main = {
     initialState: () => {markers: [||]},
     didMount: self => {
       ignore @@
-      Fetch.fetchPost(
-        "https://immense-river-25513.herokuapp.com/add-location",
-        "bsansouci",
+      Fetcher.fetchPost(
+        ~url="https://immense-river-25513.herokuapp.com/add-location",
+        ~body="bsansouci",
       );
-      Fetch.fetchGet(
-        "https://immense-river-25513.herokuapp.com/locations", data => {
+      Fetcher.fetchGet(
+        ~url="https://immense-river-25513.herokuapp.com/locations", ~cb=data => {
         let data =
           Array.map(
             data,
             marker => {
-              let (lat, long) = marker |. location;
+              let (lat, long) = marker |. Fetcher.location;
               Marker.markerT(
                 ~markerOffset=-25,
-                ~name=marker |. username,
+                ~name=marker |. Fetcher.username,
                 ~coordinates=[|long, lat|],
               );
             },
