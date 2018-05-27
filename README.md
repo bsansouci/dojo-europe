@@ -11,6 +11,13 @@ To get the locations of everyone, you should send a GET request to `https://imme
 
 To send your username send a POST request `https://immense-river-25513.herokuapp.com/add-location` with the body being just a string that's your username. The backend will figure out your location and store it.
 
+A high level plan might look like:
+1) clone this repo
+2) setup ReasonReact and get a hello world working
+3) look at react-simple-maps, write bindings to it (look at the [interop](https://reasonml.github.io/reason-react/docs/en/interop.html)) and get a dummy map working
+4) Fetch the data from the backend
+5) Draw markers for each team
+
 *hint hint*: You should probably do some sort of polling at a regular interval to get the data as people finish the dojo ;)
 
 This starter project only contains a bit of hairy fetching logic with promises, all you need to care about is calling `fetchGet` and `fetchPost`.
