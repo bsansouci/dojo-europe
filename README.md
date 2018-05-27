@@ -14,3 +14,5 @@ To get the locations of everyone, you should send a GET request to `https://imme
 To send your username send a POST request `https://immense-river-25513.herokuapp.com/add-location` with the body being just a string that's your username. The backend will figure out your location and store it.
 
 *hint hint*: You should probably do some sort of polling at a regular interval to get the data as people finish the dojo ;)
+
+And please, don't be shy and ask questions! The organizers have the answers to everything.
