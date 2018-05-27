@@ -180,7 +180,7 @@ external parseIntoMyData : string => array(data) = "parse";
 
 let forsure = a =>
   switch (a) {
-  | None => assert false
+  | None => assert(false)
   | Some(b) => b
   };
 
@@ -202,13 +202,12 @@ module Main = {
              let data = parseIntoMyData(text);
              let data =
                Array.map(
-                 (person) => {
+                 person =>
                    Marker.markerT(
                      ~markerOffset=-25,
                      ~name=person |. username,
                      ~coordinates=person |. location,
-                   );
-                 },
+                   ),
                  data,
                );
              self.send(SetState(data)) |> resolve;
