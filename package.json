@@ -1,5 +1,11 @@
 {
   "name": "europe-wide-dojo",
+  "scripts": {
+    "build": "bsb -make-world",
+    "start": "bsb -make-world -w",
+    "serve": "npx serve",
+    "clean": "bsb -clean-world"
+  },
   "dependencies": {
     "bs-fetch": "^0.3.0",
     "bs-platform": "^3.1.4",
