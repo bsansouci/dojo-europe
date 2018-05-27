@@ -1,3 +1,5 @@
+open Belt;
+
 module ComposableMap = {
   [@bs.deriving abstract]
   type projectionConfigT = {
@@ -172,11 +174,11 @@ let markers = [|
 [@bs.deriving abstract]
 type data = {
   username: string,
-  location: array(float),
+  location: (float, float),
 };
 
-[@bs.val] [@bs.scope "JSON"]
-external parseIntoMyData : string => array(data) = "parse";
+[@bs.scope "JSON"] [@bs.val]
+external parseData : string => array(data) = "parse";
 
 let forsure = a =>
   switch (a) {
@@ -193,26 +195,51 @@ module Main = {
   let make = _children => {
     ...component, /* spread the template's other defaults into here  */
     initialState: () => {markers: [||]},
-    didMount: self =>
+    didMount: self => {
+      open Js.Promise;
+      let payload = Js.Dict.empty();
+      Js.Dict.set(payload, "username", Js.Json.string("bsansouci"));
+      Js.Dict.set(
+        payload,
+        "location",
+        Js.Json.(array([|number(48.246557), number(48.246557)|])),
+      );
+      let body = Js.Json.stringify(Js.Json.object_(payload));
+      let requestInit =
+        Fetch.RequestInit.make(
+          ~method_=Fetch.Post,
+          ~body=Fetch.BodyInit.make(body),
+          ~headers=
+            Fetch.HeadersInit.make({"Content-Type": "application/json"}),
+          (),
+        );
       ignore @@
-      Js.Promise.(
+      Fetch.fetchWithInit(
+        "https://immense-river-25513.herokuapp.com/add-location",
+        requestInit,
+      );
+      ignore @@
+      (
         Fetch.fetch("https://immense-river-25513.herokuapp.com/locations")
         |> then_(Fetch.Response.text)
         |> then_(text => {
-             let data = parseIntoMyData(text);
+             let data = parseData(text);
              let data =
                Array.map(
-                 person =>
+                 data,
+                 marker => {
+                   let (lat, long) = marker |. location;
                    Marker.markerT(
                      ~markerOffset=-25,
-                     ~name=person |. username,
-                     ~coordinates=person |. location,
-                   ),
-                 data,
+                     ~name=marker |. username,
+                     ~coordinates=[|lat, long|],
+                   );
+                 },
                );
              self.send(SetState(data)) |> resolve;
            })
-      ),
+      );
+    },
     reducer: (action, _state) =>
       switch (action) {
       | SetState(markers) => ReasonReact.Update({markers: markers})
@@ -243,46 +270,44 @@ module Main = {
                    (geographies, projection) => {
                      Js.log(geographies);
                      ReasonReact.array(
-                       Array.mapi(
-                         (i, geography) =>
-                           if (Geography.id(geography) === "ATA") {
-                             <div key=(string_of_int(i)) />;
-                           } else {
-                             <Geography
-                               key=(string_of_int(i))
-                               geography
-                               projection
-                               style=(
-                                 Geography.styleT(
-                                   ~default=
-                                     ReactDOMRe.Style.make(
-                                       ~fill="#ECEFF1",
-                                       ~stroke="#607D8B",
-                                       ~strokeWidth="0.75px",
-                                       ~outline="none",
-                                       (),
-                                     ),
-                                   ~hover=
-                                     ReactDOMRe.Style.make(
-                                       ~fill="#607D8B",
-                                       ~stroke="#607D8B",
-                                       ~strokeWidth="0.75px",
-                                       ~outline="none",
-                                       (),
-                                     ),
-                                   ~pressed=
-                                     ReactDOMRe.Style.make(
-                                       ~fill="#FF5722",
-                                       ~stroke="#607D8B",
-                                       ~strokeWidth="0.75px",
-                                       ~outline="none",
-                                       (),
-                                     ),
-                                 )
+                       Array.mapWithIndex(geographies, (i, geography) =>
+                         if (Geography.id(geography) === "ATA") {
+                           <div key=(string_of_int(i)) />;
+                         } else {
+                           <Geography
+                             key=(string_of_int(i))
+                             geography
+                             projection
+                             style=(
+                               Geography.styleT(
+                                 ~default=
+                                   ReactDOMRe.Style.make(
+                                     ~fill="#ECEFF1",
+                                     ~stroke="#607D8B",
+                                     ~strokeWidth="0.75px",
+                                     ~outline="none",
+                                     (),
+                                   ),
+                                 ~hover=
+                                   ReactDOMRe.Style.make(
+                                     ~fill="#607D8B",
+                                     ~stroke="#607D8B",
+                                     ~strokeWidth="0.75px",
+                                     ~outline="none",
+                                     (),
+                                   ),
+                                 ~pressed=
+                                   ReactDOMRe.Style.make(
+                                     ~fill="#FF5722",
+                                     ~stroke="#607D8B",
+                                     ~strokeWidth="0.75px",
+                                     ~outline="none",
+                                     (),
+                                   ),
                                )
-                             />;
-                           },
-                         geographies,
+                             )
+                           />;
+                         }
                        ),
                      );
                    }
@@ -290,48 +315,45 @@ module Main = {
             </Geographies>
             <Markers>
               ...(
-                   Array.mapi(
-                     (i, marker) =>
-                       <Marker
-                         key=(string_of_int(i))
-                         marker
+                   Array.mapWithIndex(state.markers, (i, marker) =>
+                     <Marker
+                       key=(string_of_int(i))
+                       marker
+                       style=(
+                         Marker.styleT(
+                           ~default=
+                             ReactDOMRe.Style.make(~fill="#FF5722", ()),
+                           ~hover=ReactDOMRe.Style.make(~fill="#FFFFFF", ()),
+                           ~pressed=
+                             ReactDOMRe.Style.make(~fill="#FF5722", ()),
+                         )
+                       )>
+                       <circle
+                         cx="0"
+                         cy="0"
+                         r="6px"
                          style=(
-                           Marker.styleT(
-                             ~default=
-                               ReactDOMRe.Style.make(~fill="#FF5722", ()),
-                             ~hover=
-                               ReactDOMRe.Style.make(~fill="#FFFFFF", ()),
-                             ~pressed=
-                               ReactDOMRe.Style.make(~fill="#FF5722", ()),
+                           ReactDOMRe.Style.make(
+                             ~stroke="#FF5722",
+                             ~strokeWidth="3px",
+                             ~opacity="0.9",
+                             (),
+                           )
+                         )
+                       />
+                       <text
+                         textAnchor="middle"
+                         y=(string_of_int(Marker.markerOffset(marker)))
+                         style=(
+                           ReactDOMRe.Style.make(
+                             ~fontFamily="Roboto, sans-serif",
+                             ~fill="#607D8B",
+                             (),
                            )
                          )>
-                         <circle
-                           cx="0"
-                           cy="0"
-                           r="6px"
-                           style=(
-                             ReactDOMRe.Style.make(
-                               ~stroke="#FF5722",
-                               ~strokeWidth="3px",
-                               ~opacity="0.9",
-                               (),
-                             )
-                           )
-                         />
-                         <text
-                           textAnchor="middle"
-                           y=(string_of_int(Marker.markerOffset(marker)))
-                           style=(
-                             ReactDOMRe.Style.make(
-                               ~fontFamily="Roboto, sans-serif",
-                               ~fill="#607D8B",
-                               (),
-                             )
-                           )>
-                           (ReasonReact.string(Marker.name(marker)))
-                         </text>
-                       </Marker>,
-                     state.markers,
+                         (ReasonReact.string(Marker.name(marker)))
+                       </text>
+                     </Marker>
                    )
                  )
             </Markers>
